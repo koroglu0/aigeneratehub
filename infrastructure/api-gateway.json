@@ -1,0 +1,192 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "AI Generate Hub - API Gateway (HTTP API)",
+  "Parameters": {
+    "PromptBuilderUrl": {
+      "Type": "String",
+      "Description": "URL of the prompt-builder service"
+    },
+    "AiIntegrationUrl": {
+      "Type": "String",
+      "Description": "URL of the ai-integration service"
+    },
+    "UserServiceUrl": {
+      "Type": "String",
+      "Description": "URL of the user-service"
+    },
+    "CorsOrigins": {
+      "Type": "String",
+      "Description": "Comma-separated list of allowed CORS origins"
+    }
+  },
+  "Resources": {
+    "HttpApi": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "aigeneratehub-api",
+        "ProtocolType": "HTTP",
+        "CorsConfiguration": {
+          "AllowOrigins": [{"Ref": "CorsOrigins"}],
+          "AllowMethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+          "AllowHeaders": ["Content-Type", "Authorization", "Idempotency-Key", "X-Request-ID"],
+          "ExposeHeaders": ["X-Request-ID"],
+          "MaxAge": 300
+        }
+      }
+    },
+    "JwtAuthorizer": {
+      "Type": "AWS::ApiGatewayV2::Authorizer",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "AuthorizerType": "JWT",
+        "Name": "JwtAuthorizer",
+        "IdentitySource": ["$request.header.Authorization"],
+        "JwtConfiguration": {
+          "Audience": ["aigeneratehub-api"],
+          "Issuer": {"Fn::Sub": "https://${UserServiceUrl}"}
+        }
+      }
+    },
+    "PromptBuilderIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "IntegrationUri": {"Fn::Sub": "${PromptBuilderUrl}/{proxy}"},
+        "PayloadFormatVersion": "1.0"
+      }
+    },
+    "AiIntegrationIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "IntegrationUri": {"Fn::Sub": "${AiIntegrationUrl}/{proxy}"},
+        "PayloadFormatVersion": "1.0"
+      }
+    },
+    "UserServiceIntegration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationMethod": "ANY",
+        "IntegrationUri": {"Fn::Sub": "${UserServiceUrl}/{proxy}"},
+        "PayloadFormatVersion": "1.0"
+      }
+    },
+    "RouteHealth": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "ANY /api/v1/health",
+        "AuthorizationType": "NONE",
+        "Target": {"Fn::Sub": "integrations/${PromptBuilderIntegration}"}
+      }
+    },
+    "RouteTemplatesMain": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "GET /api/v1/templates/main",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${PromptBuilderIntegration}"}
+      }
+    },
+    "RouteTemplatesMainById": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "GET /api/v1/templates/main/{templateId}",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${PromptBuilderIntegration}"}
+      }
+    },
+    "RouteTemplatesObjects": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "GET /api/v1/templates/objects",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${PromptBuilderIntegration}"}
+      }
+    },
+    "RoutePromptsBuild": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "POST /api/v1/prompts/build",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${PromptBuilderIntegration}"}
+      }
+    },
+    "RouteGenerate": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "POST /api/v1/generate",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${AiIntegrationIntegration}"}
+      }
+    },
+    "RouteGenerateById": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "GET /api/v1/generate/{requestId}",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${AiIntegrationIntegration}"}
+      }
+    },
+    "RouteUsersRegister": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "POST /api/v1/users/register",
+        "AuthorizationType": "NONE",
+        "Target": {"Fn::Sub": "integrations/${UserServiceIntegration}"}
+      }
+    },
+    "RouteUsersLogin": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "POST /api/v1/users/login",
+        "AuthorizationType": "NONE",
+        "Target": {"Fn::Sub": "integrations/${UserServiceIntegration}"}
+      }
+    },
+    "RouteUsersMe": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "RouteKey": "GET /api/v1/users/me",
+        "AuthorizationType": "JWT",
+        "AuthorizerId": {"Ref": "JwtAuthorizer"},
+        "Target": {"Fn::Sub": "integrations/${UserServiceIntegration}"}
+      }
+    },
+    "DefaultStage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {"Ref": "HttpApi"},
+        "StageName": "$default",
+        "AutoDeploy": true
+      }
+    }
+  },
+  "Outputs": {
+    "ApiGatewayUrl": {
+      "Description": "API Gateway endpoint URL",
+      "Value": {"Fn::Sub": "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"}
+    }
+  }
+}
