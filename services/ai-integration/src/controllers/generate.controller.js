@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const asyncHandler = require('../utils/asyncHandler');
 const callService = require('../utils/callService');
 const { generateImage, listModels } = require('../services/image.provider');
-const { checkIdempotency, createRequest, updateRequest, getRequest } = require('../services/idempotency.service');
+const { checkIdempotency, createRequest, updateRequest, getRequest, getUserHistory } = require('../services/idempotency.service');
 const { ValidationError, NotFoundError, UnauthorizedError } = require('../errors/AppError');
 const env = require('../config/env');
 const logger = require('../utils/logger');
@@ -98,6 +98,22 @@ const generate = asyncHandler(async (req, res) => {
 });
 
 /**
+ * GET /api/v1/generate/history
+ */
+const getHistory = asyncHandler(async (req, res) => {
+  const userId = req.user.userId;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+  const lastKey = req.query.cursor || null;
+
+  const { items, lastKey: nextKey } = await getUserHistory(userId, limit, lastKey);
+
+  res.json({
+    success: true,
+    data: { items, count: items.length, lastKey: nextKey },
+  });
+});
+
+/**
  * GET /api/v1/generate/:requestId
  */
 const getGenerationById = asyncHandler(async (req, res) => {
@@ -118,4 +134,4 @@ const getModels = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { items: models, count: models.length, lastKey: null } });
 });
 
-module.exports = { health, generate, getGenerationById, getModels };
+module.exports = { health, generate, getHistory, getGenerationById, getModels };

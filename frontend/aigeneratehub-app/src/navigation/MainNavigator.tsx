@@ -5,6 +5,7 @@ import { HomeScreen }        from '../screens/main/HomeScreen';
 import { ModelSelectScreen } from '../screens/main/ModelSelectScreen';
 import { GeneratingScreen }  from '../screens/main/GeneratingScreen';
 import { ResultScreen }      from '../screens/main/ResultScreen';
+import { HistoryScreen }     from '../screens/main/HistoryScreen';
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
 
@@ -18,7 +19,8 @@ export function MainNavigator() {
         component={GeneratingScreen}
         options={{ gestureEnabled: false }}
       />
-      <Stack.Screen name="Result" component={ResultScreen} />
+      <Stack.Screen name="Result"   component={ResultScreen} />
+      <Stack.Screen name="History"  component={HistoryScreen} />
     </Stack.Navigator>
   );
 }

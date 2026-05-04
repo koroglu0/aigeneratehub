@@ -17,3 +17,11 @@ export const getGenerationStatus = (requestId: string) =>
   apiClient
     .get<{ success: true; data: GenerationStatusResponse }>(`/api/v1/generate/${requestId}`)
     .then(r => r.data.data);
+
+export const getGenerationHistory = (cursor?: string) =>
+  apiClient
+    .get<{ success: true; data: { items: import('../types/api.types').GenerationHistoryItem[]; count: number; lastKey: string | null } }>(
+      '/api/v1/generate/history',
+      { params: cursor ? { cursor } : undefined },
+    )
+    .then(r => r.data.data);

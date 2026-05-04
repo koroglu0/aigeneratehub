@@ -10,6 +10,7 @@ export type MainStackParamList = {
   ModelSelect: undefined;
   Generating: undefined;
   Result: { imageUrl: string };
+  History: undefined;
 };
 
 export type LoginScreenProps        = NativeStackScreenProps<AuthStackParamList, 'Login'>;
@@ -18,3 +19,4 @@ export type HomeScreenProps         = NativeStackScreenProps<MainStackParamList,
 export type ModelSelectScreenProps  = NativeStackScreenProps<MainStackParamList, 'ModelSelect'>;
 export type GeneratingScreenProps   = NativeStackScreenProps<MainStackParamList, 'Generating'>;
 export type ResultScreenProps       = NativeStackScreenProps<MainStackParamList, 'Result'>;
+export type HistoryScreenProps      = NativeStackScreenProps<MainStackParamList, 'History'>;

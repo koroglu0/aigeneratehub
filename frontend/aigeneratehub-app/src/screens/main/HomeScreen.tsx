@@ -42,7 +42,12 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <Text style={styles.header}>Choose a Template</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Choose a Template</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('History')} style={styles.historyBtn}>
+            <Text style={styles.historyBtnText}>History</Text>
+          </TouchableOpacity>
+        </View>
 
         <FlatList<MainTemplate>
           data={mainQuery.data ?? []}
@@ -110,9 +115,27 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '700',
     color: '#F1F5F9',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 32,
     paddingBottom: 8,
+  },
+  historyBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  historyBtnText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '600',
   },
   grid: {
     flex: 1,

@@ -58,11 +58,19 @@ export interface GenerationStatusResponse {
   errorMessage?: string;
 }
 
-// ── Generic API Error ──────────────────────────────────────
+/** A single item in the user's generation history */
+export interface GenerationHistoryItem {
+  requestId: string;
+  status: 'completed' | 'failed';
+  imageUrl?: string;
+  mainTemplateId: string;
+  objectTemplateIds: string[];
+  aiModel: string;
+  generationMs?: number;
+  createdAt: string;
+}
+
 export interface ApiErrorBody {
   success: false;
-  error: {
-    code: string;
-    message: string;
-  };
+  error: { code: string; message: string; requestId?: string };
 }

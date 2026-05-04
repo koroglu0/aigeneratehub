@@ -122,4 +122,50 @@ const getRequest = async (requestId) => {
   }
 };
 
-module.exports = { checkIdempotency, createRequest, updateRequest, getRequest };
+/**
+ * Gets all completed/failed GenerationRequests for a user, newest first.
+ * @param {string} userId
+ * @param {number} limit
+ * @param {string|null} lastKey - base64-encoded ExclusiveStartKey for pagination
+ * @returns {Promise<{items: Object[], lastKey: string|null}>}
+ */
+const getUserHistory = async (userId, limit = 20, lastKey = null) => {
+  const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+  const params = {
+    TableName: TABLE,
+    IndexName: 'userIndex',
+    KeyConditionExpression: 'userId = :uid',
+    FilterExpression: '#status IN (:completed, :failed)',
+    ExpressionAttributeNames: { '#status': 'status' },
+    ExpressionAttributeValues: {
+      ':uid': userId,
+      ':completed': 'completed',
+      ':failed': 'failed',
+    },
+    ScanIndexForward: false, // newest first
+    Limit: limit,
+  };
+
+  if (lastKey) {
+    try {
+      params.ExclusiveStartKey = JSON.parse(Buffer.from(lastKey, 'base64').toString('utf8'));
+    } catch (_) {
+      // ignore invalid cursor
+    }
+  }
+
+  try {
+    const result = await docClient.send(new QueryCommand(params));
+    const items = (result.Items || []).map(({ aiRequestId, idempotencyKey, finalPrompt, ...safe }) => safe);
+    const nextKey = result.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+      : null;
+    return { items, lastKey: nextKey };
+  } catch (err) {
+    logger.error({ message: 'Failed to get user history', error: err.message, userId });
+    throw new DatabaseError('Failed to get generation history');
+  }
+};
+
+module.exports = { checkIdempotency, createRequest, updateRequest, getRequest, getUserHistory };
