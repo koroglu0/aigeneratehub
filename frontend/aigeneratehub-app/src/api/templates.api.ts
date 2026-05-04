@@ -28,7 +28,7 @@ export const getMainTemplates = () =>
         id: t.templateId,
         name: t.displayName,
         category: t.category,
-        thumbnailUrl: t.thumbnailUrl ?? '',
+        thumbnailUrl: t.thumbnailUrl ?? undefined,
       })),
     );
 
@@ -39,7 +39,7 @@ export const getObjectTemplates = () =>
       r.data.data.items.map((t): ObjectTemplate => ({
         id: t.objectId,
         name: t.displayName,
-        iconUrl: t.iconUrl ?? '',
+        iconUrl: t.iconUrl ?? undefined,
       })),
     );
 

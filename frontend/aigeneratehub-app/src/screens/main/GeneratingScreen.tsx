@@ -50,7 +50,7 @@ function buildErrorMessage(error: unknown): { title: string; body: string } {
 
 export function GeneratingScreen({ navigation }: GeneratingScreenProps) {
   const { user } = useAuthStore();
-  const { selectedMainTemplateId, selectedObjectTemplateIds, clearSelections } =
+  const { selectedMainTemplateId, selectedObjectTemplateIds, selectedModel, clearSelections } =
     useSelectionStore();
 
   const [requestId, setRequestId] = useState<string | null>(null);
@@ -90,6 +90,7 @@ export function GeneratingScreen({ navigation }: GeneratingScreenProps) {
           mainTemplateId: selectedMainTemplateId!,
           objectTemplateIds: selectedObjectTemplateIds,
           userId: user!.id,
+          model: selectedModel,
         },
         idempotencyKey.current,
       ),

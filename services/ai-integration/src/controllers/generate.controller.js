@@ -4,7 +4,7 @@ const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
 const asyncHandler = require('../utils/asyncHandler');
 const callService = require('../utils/callService');
-const { generateImage } = require('../services/image.provider');
+const { generateImage, listModels } = require('../services/image.provider');
 const { checkIdempotency, createRequest, updateRequest, getRequest } = require('../services/idempotency.service');
 const { ValidationError, NotFoundError, UnauthorizedError } = require('../errors/AppError');
 const env = require('../config/env');
@@ -14,6 +14,7 @@ const generateSchema = Joi.object({
   mainTemplateId: Joi.string().required(),
   objectTemplateIds: Joi.array().items(Joi.string()).max(5).default([]),
   userId: Joi.string().required(),
+  model: Joi.string().default('flux'),
 });
 
 /**
@@ -37,7 +38,7 @@ const generate = asyncHandler(async (req, res) => {
     throw new ValidationError(error.details.map((d) => d.message).join('; '));
   }
 
-  const { mainTemplateId, objectTemplateIds, userId } = value;
+  const { mainTemplateId, objectTemplateIds, userId, model } = value;
 
   // Check idempotency
   const existing = await checkIdempotency(idempotencyKey);
@@ -64,7 +65,7 @@ const generate = asyncHandler(async (req, res) => {
   const requestId = uuidv4();
 
   // Create record with status "pending"
-  await createRequest({ requestId, idempotencyKey, userId, mainTemplateId, objectTemplateIds });
+  await createRequest({ requestId, idempotencyKey, userId, mainTemplateId, objectTemplateIds, model });
 
   // Call prompt-builder with service JWT
   const builderUrl = `${env.PROMPT_BUILDER_URL}/api/v1/prompts/build`;
@@ -87,7 +88,7 @@ const generate = asyncHandler(async (req, res) => {
   // Fire-and-forget: call OpenAI in background after response is sent
   setImmediate(async () => {
     try {
-      const { imageUrl, aiRequestId, generationMs } = await generateImage(finalPrompt);
+      const { imageUrl, aiRequestId, generationMs } = await generateImage(finalPrompt, model);
       await updateRequest(requestId, { status: 'completed', imageUrl, aiRequestId, generationMs });
     } catch (err) {
       logger.error({ message: 'Background generation failed', requestId, error: err.message });
@@ -109,4 +110,12 @@ const getGenerationById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: safeRecord });
 });
 
-module.exports = { health, generate, getGenerationById };
+/**
+ * GET /api/v1/models
+ */
+const getModels = asyncHandler(async (req, res) => {
+  const models = await listModels();
+  res.json({ success: true, data: { items: models, count: models.length, lastKey: null } });
+});
+
+module.exports = { health, generate, getGenerationById, getModels };

@@ -28,8 +28,8 @@ export function LoginScreen({ navigation }: LoginScreenProps) {
       { email, password },
       {
         onError: (error) => {
-          if (axios.isAxiosError(error) && error.response?.status === 400) {
-            const msg = error.response?.data?.error?.message ?? 'Login failed. Please try again.';
+          if (axios.isAxiosError(error) && (error.response?.status === 400 || error.response?.status === 401)) {
+            const msg = error.response?.data?.error?.message ?? 'Invalid email or password.';
             setFormError(msg);
           } else {
             handleApiError(error);

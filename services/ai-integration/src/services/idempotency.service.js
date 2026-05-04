@@ -41,7 +41,7 @@ const checkIdempotency = async (idempotencyKey) => {
  * @param {string[]} params.objectTemplateIds
  * @returns {Promise<void>}
  */
-const createRequest = async ({ requestId, idempotencyKey, userId, mainTemplateId, objectTemplateIds }) => {
+const createRequest = async ({ requestId, idempotencyKey, userId, mainTemplateId, objectTemplateIds, model }) => {
   const now = new Date().toISOString();
   const expiresAt = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60; // 30 days
 
@@ -58,7 +58,7 @@ const createRequest = async ({ requestId, idempotencyKey, userId, mainTemplateId
         status: 'pending',
         imageUrl: null,
         errorMessage: null,
-        aiModel: 'dall-e-3',
+        aiModel: model || 'flux',
         aiRequestId: null,
         generationMs: null,
         createdAt: now,

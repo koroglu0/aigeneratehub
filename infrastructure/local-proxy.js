@@ -45,6 +45,7 @@ function makeProxy(target, prefix) {
 app.use('/api/v1/templates', makeProxy(PROMPT_BUILDER, '/api/v1/templates'));
 app.use('/api/v1/prompts',   makeProxy(PROMPT_BUILDER, '/api/v1/prompts'));
 app.use('/api/v1/generate',  makeProxy(AI_INTEGRATION, '/api/v1/generate'));
+app.use('/api/v1/models',    makeProxy(AI_INTEGRATION, '/api/v1/models'));
 app.use('/api/v1/users',     makeProxy(USER_SERVICE,   '/api/v1/users'));
 app.use('/api/v1/health',    makeProxy(PROMPT_BUILDER, '/api/v1/health'));
 

@@ -88,8 +88,8 @@ export function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={styles.fabContainer}>
           <Button
-            label="Generate Visual"
-            onPress={() => navigation.navigate('Generating')}
+            label="Next: Choose Model"
+            onPress={() => navigation.navigate('ModelSelect')}
             disabled={!selectedMainTemplateId}
           />
         </View>

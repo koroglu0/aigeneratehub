@@ -15,7 +15,11 @@ export function MainTemplateCard({ template, selected, onPress }: MainTemplateCa
       onPress={() => onPress(template.id)}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: template.thumbnailUrl }} style={styles.thumbnail} resizeMode="cover" />
+      {template.thumbnailUrl ? (
+        <Image source={{ uri: template.thumbnailUrl }} style={styles.thumbnail} resizeMode="cover" />
+      ) : (
+        <View style={styles.thumbnail} />
+      )}
       <View style={styles.footer}>
         <Text style={styles.name} numberOfLines={2}>
           {template.name}

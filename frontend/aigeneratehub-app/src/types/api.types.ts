@@ -26,6 +26,13 @@ export interface GenerateRequest {
   mainTemplateId: string;
   objectTemplateIds: string[];
   userId: string;
+  model: string;
+}
+
+export interface AiModel {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 /** Returned on 200 OK (already completed) */

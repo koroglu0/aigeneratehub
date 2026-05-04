@@ -27,7 +27,9 @@ export function ObjectTemplateBadge({
       ]}
     >
       <View style={styles.inner}>
-        <Image source={{ uri: template.iconUrl }} style={styles.icon} resizeMode="contain" />
+        {template.iconUrl ? (
+          <Image source={{ uri: template.iconUrl }} style={styles.icon} resizeMode="contain" />
+        ) : null}
         <Text style={[styles.label, selected && styles.labelSelected]}>{template.name}</Text>
       </View>
     </TouchableOpacity>

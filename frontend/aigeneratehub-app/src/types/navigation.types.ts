@@ -7,12 +7,14 @@ export type AuthStackParamList = {
 
 export type MainStackParamList = {
   Home: undefined;
+  ModelSelect: undefined;
   Generating: undefined;
   Result: { imageUrl: string };
 };
 
-export type LoginScreenProps      = NativeStackScreenProps<AuthStackParamList, 'Login'>;
-export type RegisterScreenProps   = NativeStackScreenProps<AuthStackParamList, 'Register'>;
-export type HomeScreenProps       = NativeStackScreenProps<MainStackParamList, 'Home'>;
-export type GeneratingScreenProps = NativeStackScreenProps<MainStackParamList, 'Generating'>;
-export type ResultScreenProps     = NativeStackScreenProps<MainStackParamList, 'Result'>;
+export type LoginScreenProps        = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+export type RegisterScreenProps     = NativeStackScreenProps<AuthStackParamList, 'Register'>;
+export type HomeScreenProps         = NativeStackScreenProps<MainStackParamList, 'Home'>;
+export type ModelSelectScreenProps  = NativeStackScreenProps<MainStackParamList, 'ModelSelect'>;
+export type GeneratingScreenProps   = NativeStackScreenProps<MainStackParamList, 'Generating'>;
+export type ResultScreenProps       = NativeStackScreenProps<MainStackParamList, 'Result'>;
