@@ -1,0 +1,36 @@
+# The manifest for the "local-proxy" service.
+# This is the single public-facing API gateway that routes to backend services.
+# Read the full specification for the "Load Balanced Web Service" type at:
+#  https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/
+
+name: local-proxy
+type: Load Balanced Web Service
+
+http:
+  path: '/'
+  healthcheck:
+    path: '/health'
+    success_codes: '200'
+    interval: 30s
+    timeout: 10s
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+
+image:
+  build:
+    dockerfile: infrastructure/Dockerfile.proxy
+    context: infrastructure
+  port: 4000
+
+cpu: 256
+memory: 512
+count: 1
+exec: true
+network:
+  connect: true
+
+variables:
+  NODE_ENV: production
+  PROMPT_BUILDER_URL: http://prompt-builder:3001
+  AI_INTEGRATION_URL: http://ai-integration:3002
+  USER_SERVICE_URL: http://user-service:3003

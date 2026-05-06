@@ -64,6 +64,7 @@ const tables = [
       { AttributeName: 'requestId', AttributeType: 'S' },
       { AttributeName: 'userId', AttributeType: 'S' },
       { AttributeName: 'createdAt', AttributeType: 'S' },
+      { AttributeName: 'idempotencyKey', AttributeType: 'S' },
     ],
     GlobalSecondaryIndexes: [
       {
@@ -72,6 +73,11 @@ const tables = [
           { AttributeName: 'userId', KeyType: 'HASH' },
           { AttributeName: 'createdAt', KeyType: 'RANGE' },
         ],
+        Projection: { ProjectionType: 'ALL' },
+      },
+      {
+        IndexName: 'idempotencyKeyIndex',
+        KeySchema: [{ AttributeName: 'idempotencyKey', KeyType: 'HASH' }],
         Projection: { ProjectionType: 'ALL' },
       },
     ],

@@ -1,6 +1,6 @@
 'use strict';
 
-const { PutCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, GetCommand, UpdateCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const { docClient, TABLE_NAMES } = require('../config/db');
 const { DatabaseError } = require('../errors/AppError');
 const logger = require('../utils/logger');
@@ -14,13 +14,10 @@ const TABLE = TABLE_NAMES.GENERATION_REQUESTS;
  */
 const checkIdempotency = async (idempotencyKey) => {
   try {
-    const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
-    // We need to scan with a filter since idempotencyKey is not a key
-    // In production, add a GSI on idempotencyKey for efficiency
-    const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
-    const result = await docClient.send(new ScanCommand({
+    const result = await docClient.send(new QueryCommand({
       TableName: TABLE,
-      FilterExpression: 'idempotencyKey = :ik',
+      IndexName: 'idempotencyKeyIndex',
+      KeyConditionExpression: 'idempotencyKey = :ik',
       ExpressionAttributeValues: { ':ik': idempotencyKey },
       Limit: 1,
     }));
@@ -130,39 +127,54 @@ const getRequest = async (requestId) => {
  * @returns {Promise<{items: Object[], lastKey: string|null}>}
  */
 const getUserHistory = async (userId, limit = 20, lastKey = null) => {
-  const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+  const { ValidationError } = require('../errors/AppError');
 
-  const params = {
-    TableName: TABLE,
-    IndexName: 'userIndex',
-    KeyConditionExpression: 'userId = :uid',
-    FilterExpression: '#status IN (:completed, :failed)',
-    ExpressionAttributeNames: { '#status': 'status' },
-    ExpressionAttributeValues: {
-      ':uid': userId,
-      ':completed': 'completed',
-      ':failed': 'failed',
-    },
-    ScanIndexForward: false, // newest first
-    Limit: limit,
-  };
-
+  let exclusiveStartKey = null;
   if (lastKey) {
     try {
-      params.ExclusiveStartKey = JSON.parse(Buffer.from(lastKey, 'base64').toString('utf8'));
+      exclusiveStartKey = JSON.parse(Buffer.from(lastKey, 'base64').toString('utf8'));
     } catch (_) {
-      // ignore invalid cursor
+      throw new ValidationError('Invalid pagination cursor');
     }
   }
 
+  // DynamoDB applies FilterExpression AFTER Limit, which can cause under-fetching.
+  // Loop until we have `limit` filtered items or no more pages remain.
+  const collectedItems = [];
+  let nextDynamoKey = exclusiveStartKey;
+
   try {
-    const result = await docClient.send(new QueryCommand(params));
-    const items = (result.Items || []).map(({ aiRequestId, idempotencyKey, finalPrompt, ...safe }) => safe);
-    const nextKey = result.LastEvaluatedKey
-      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+    do {
+      const params = {
+        TableName: TABLE,
+        IndexName: 'userIndex',
+        KeyConditionExpression: 'userId = :uid',
+        FilterExpression: '#status IN (:completed, :failed)',
+        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeValues: {
+          ':uid': userId,
+          ':completed': 'completed',
+          ':failed': 'failed',
+        },
+        ScanIndexForward: false,
+        ExclusiveStartKey: nextDynamoKey || undefined,
+      };
+
+      const result = await docClient.send(new QueryCommand(params));
+      const page = (result.Items || []).map(({ aiRequestId, idempotencyKey, finalPrompt, ...safe }) => safe);
+      collectedItems.push(...page);
+      nextDynamoKey = result.LastEvaluatedKey || null;
+    } while (collectedItems.length < limit && nextDynamoKey);
+
+    const pageItems = collectedItems.slice(0, limit);
+    const hasMore = collectedItems.length > limit || nextDynamoKey;
+    const encodedNextKey = hasMore
+      ? Buffer.from(JSON.stringify(nextDynamoKey)).toString('base64')
       : null;
-    return { items, lastKey: nextKey };
+
+    return { items: pageItems, lastKey: encodedNextKey };
   } catch (err) {
+    if (err.isOperational) throw err;
     logger.error({ message: 'Failed to get user history', error: err.message, userId });
     throw new DatabaseError('Failed to get generation history');
   }

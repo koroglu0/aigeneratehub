@@ -23,7 +23,12 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET);
+    // Detect token type without verification, then verify with the correct secret.
+    // Service tokens (role: "service") are signed with SERVICE_JWT_SECRET;
+    // user tokens are signed with JWT_SECRET.
+    const unverified = jwt.decode(token);
+    const secret = unverified?.role === 'service' ? env.SERVICE_JWT_SECRET : env.JWT_SECRET;
+    const decoded = jwt.verify(token, secret);
     req.user = { userId: decoded.userId, role: decoded.role };
     return next();
   } catch (err) {

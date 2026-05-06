@@ -4,8 +4,15 @@ const env = require('../config/env');
 const pollinations = require('./pollinations.service');
 const openai = require('./openai.service');
 const huggingface = require('./huggingface.service');
+const { ValidationError } = require('../errors/AppError');
 
 const OPENAI_MODELS = new Set(['dall-e-3', 'dall-e-2']);
+
+const requireOpenAI = () => {
+  if (!env.OPENAI_API_KEY) {
+    throw new ValidationError('OpenAI model requested but OPENAI_API_KEY is not configured');
+  }
+};
 
 /**
  * Dispatches image generation to the correct provider based on model name.
@@ -21,10 +28,12 @@ const generateImage = (prompt, model) => {
   if (!model) {
     if (env.AI_PROVIDER === 'huggingface') return huggingface.generateImage(prompt);
     if (env.AI_PROVIDER === 'pollinations') return pollinations.generateImage(prompt);
+    requireOpenAI();
     return openai.generateImage(prompt);
   }
 
   if (OPENAI_MODELS.has(model)) {
+    requireOpenAI();
     return openai.generateImage(prompt);
   }
 

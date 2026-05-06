@@ -23,7 +23,7 @@ function makeProxy(target, prefix) {
           if (req.headers[header]) proxyReq.setHeader(header, req.headers[header]);
         });
         // eslint-disable-next-line no-console
-        console.log(`[PROXY] ${req.method} ${req.originalUrl} → ${target}${prefix}${req.url}`);
+        console.log(`[PROXY] ${req.method} ${req.originalUrl} → ${target}${proxyReq.path}`);
       },
       error: (err, req, res) => {
         // eslint-disable-next-line no-console
@@ -47,7 +47,33 @@ app.use('/api/v1/prompts',   makeProxy(PROMPT_BUILDER, '/api/v1/prompts'));
 app.use('/api/v1/generate',  makeProxy(AI_INTEGRATION, '/api/v1/generate'));
 app.use('/api/v1/models',    makeProxy(AI_INTEGRATION, '/api/v1/models'));
 app.use('/api/v1/users',     makeProxy(USER_SERVICE,   '/api/v1/users'));
-app.use('/api/v1/health',    makeProxy(PROMPT_BUILDER, '/api/v1/health'));
+
+// Proxy-level health aggregator: checks all three upstream services.
+app.get('/health', async (req, res) => {
+  const upstreams = [
+    { name: 'prompt-builder', url: `${PROMPT_BUILDER}/api/v1/health` },
+    { name: 'ai-integration', url: `${AI_INTEGRATION}/api/v1/health` },
+    { name: 'user-service',   url: `${USER_SERVICE}/api/v1/health` },
+  ];
+
+  const results = await Promise.all(
+    upstreams.map(async ({ name, url }) => {
+      try {
+        const resp = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        return { name, status: resp.ok ? 'ok' : 'degraded', httpStatus: resp.status };
+      } catch (err) {
+        return { name, status: 'unreachable', error: err.message };
+      }
+    }),
+  );
+
+  const allOk = results.every((r) => r.status === 'ok');
+  res.status(allOk ? 200 : 503).json({
+    status: allOk ? 'ok' : 'degraded',
+    services: results,
+    timestamp: new Date().toISOString(),
+  });
+});
 
 app.listen(4000, () => {
   // eslint-disable-next-line no-console

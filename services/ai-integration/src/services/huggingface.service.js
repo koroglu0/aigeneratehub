@@ -24,7 +24,7 @@ const generateImage = async (prompt) => {
       body: JSON.stringify({
         inputs: prompt,
         parameters: {
-          negative_prompt: 'blurry, bad quality, distorted, deformed',
+          negative_prompt: env.HF_NEGATIVE_PROMPT || 'blurry, bad quality, distorted, deformed',
           num_inference_steps: 30,
           guidance_scale: 7.5,
         },

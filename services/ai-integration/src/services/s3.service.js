@@ -6,8 +6,10 @@ const env = require('../config/env');
 
 const s3 = new S3Client({ region: env.AWS_REGION });
 
+const EXTENSION_MAP = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+
 const uploadImageBuffer = async (buffer, contentType = 'image/png') => {
-  const ext = contentType.split('/')[1] || 'png';
+  const ext = EXTENSION_MAP[contentType] || 'png';
   const key = `generated/${uuidv4()}.${ext}`;
 
   await s3.send(

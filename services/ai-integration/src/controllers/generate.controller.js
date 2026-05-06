@@ -6,14 +6,13 @@ const asyncHandler = require('../utils/asyncHandler');
 const callService = require('../utils/callService');
 const { generateImage, listModels } = require('../services/image.provider');
 const { checkIdempotency, createRequest, updateRequest, getRequest, getUserHistory } = require('../services/idempotency.service');
-const { ValidationError, NotFoundError, UnauthorizedError } = require('../errors/AppError');
+const { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError } = require('../errors/AppError');
 const env = require('../config/env');
 const logger = require('../utils/logger');
 
 const generateSchema = Joi.object({
   mainTemplateId: Joi.string().required(),
   objectTemplateIds: Joi.array().items(Joi.string()).max(5).default([]),
-  userId: Joi.string().required(),
   model: Joi.string().default('flux'),
 });
 
@@ -33,12 +32,13 @@ const generate = asyncHandler(async (req, res) => {
     throw new ValidationError('Idempotency-Key header is required');
   }
 
-  const { error, value } = generateSchema.validate(req.body, { abortEarly: false });
+  const { error, value } = generateSchema.validate(req.body, { abortEarly: false, stripUnknown: true });
   if (error) {
     throw new ValidationError(error.details.map((d) => d.message).join('; '));
   }
 
-  const { mainTemplateId, objectTemplateIds, userId, model } = value;
+  const { mainTemplateId, objectTemplateIds, model } = value;
+  const userId = req.user.userId;
 
   // Check idempotency
   const existing = await checkIdempotency(idempotencyKey);
@@ -120,6 +120,10 @@ const getGenerationById = asyncHandler(async (req, res) => {
   const record = await getRequest(req.params.requestId);
   if (!record) {
     throw new NotFoundError(`Request ${req.params.requestId} was not found`);
+  }
+
+  if (record.userId !== req.user.userId) {
+    throw new ForbiddenError('You do not have access to this generation request');
   }
 
   const { aiRequestId, ...safeRecord } = record;

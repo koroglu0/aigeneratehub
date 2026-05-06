@@ -10,7 +10,7 @@ const router = Router();
 router.get('/health', health);
 router.get('/models', generalRateLimiter, authMiddleware, getModels);
 router.get('/generate/history', generalRateLimiter, authMiddleware, getHistory);
-router.post('/generate', generateRateLimiter, authMiddleware, generate);
+router.post('/generate', authMiddleware, generateRateLimiter, generate);
 router.get('/generate/:requestId', generalRateLimiter, authMiddleware, getGenerationById);
 
 module.exports = router;

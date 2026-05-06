@@ -1,5 +1,6 @@
 'use strict';
 
+const { uploadImageBuffer } = require('./s3.service');
 const { AIProviderError } = require('../errors/AppError');
 const logger = require('../utils/logger');
 
@@ -48,12 +49,14 @@ const generateImage = async (prompt, model = DEFAULT_MODEL) => {
     throw new AIProviderError(`Pollinations returned non-image content (${contentType}): ${body.substring(0, 200)}`);
   }
 
-  await response.arrayBuffer();
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const s3Url = await uploadImageBuffer(buffer, contentType);
 
   const generationMs = Date.now() - startTime;
   logger.info({ message: 'Pollinations image ready', model, generationMs });
 
-  return { imageUrl, aiRequestId: null, generationMs };
+  return { imageUrl: s3Url, aiRequestId: null, generationMs };
 };
 
 let cachedModels = null;

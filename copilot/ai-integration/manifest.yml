@@ -1,0 +1,64 @@
+# The manifest for the "ai-integration" service.
+# Read the full specification for the "Load Balanced Web Service" type at:
+#  https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/
+
+# Your service name will be used in naming your resources like log groups, ECS services, etc.
+name: ai-integration
+type: Load Balanced Web Service
+
+# Distribute traffic to your service.
+http:
+  path: '/api/v1/generate'
+  healthcheck:
+    path: '/api/v1/health'
+    success_codes: '200'
+    interval: 30s
+    timeout: 10s
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+
+# Configuration for your containers and service.
+image:
+  # Docker build arguments. For additional overrides: https://aws.github.io/copilot-cli/docs/manifest/lb-web-service/#image-build
+  build: services\ai-integration\Dockerfile
+  # Port exposed through your container to route traffic to it.
+  port: 3002
+
+cpu: 256       # Number of CPU units for the task.
+memory: 512    # Amount of memory in MiB used by the task.
+count: 1       # Number of tasks that should be running in your service.
+exec: true     # Enable running commands in your container.
+network:
+  connect: true # Enable Service Connect for intra-environment traffic between services.
+
+# storage:
+  # readonly_fs: true       # Limit to read-only access to mounted root filesystems.
+
+variables:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  PORT: 3002
+  AWS_REGION: eu-north-1
+  CORS_ORIGINS: "*"
+  AI_PROVIDER: pollinations
+  HF_MODEL: runwayml/stable-diffusion-v1-5
+  S3_BUCKET: cf-templates-11qu9x4vd0bjf-eu-north-1
+  OPENAI_MODEL: dall-e-3
+  OPENAI_IMAGE_SIZE: 1024x1024
+  OPENAI_IMAGE_QUALITY: standard
+  PROMPT_BUILDER_URL: http://prompt-builder:3001
+
+secrets:
+  JWT_SECRET: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/JWT_SECRET
+  SERVICE_JWT_SECRET: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/SERVICE_JWT_SECRET
+  AWS_ACCESS_KEY_ID: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/AWS_SECRET_ACCESS_KEY
+  HF_API_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/HF_API_KEY
+  OPENAI_API_KEY: /copilot/${COPILOT_APPLICATION_NAME}/${COPILOT_ENVIRONMENT_NAME}/secrets/OPENAI_API_KEY
+
+# You can override any of the values defined above by environment.
+#environments:
+#  test:
+#    count: 2               # Number of tasks to run for the "test" environment.
+#    deployment:            # The deployment strategy for the "test" environment.
+#       rolling: 'recreate' # Stops existing tasks before new ones are started for faster deployments.

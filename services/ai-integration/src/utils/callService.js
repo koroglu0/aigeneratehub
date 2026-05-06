@@ -20,7 +20,7 @@ const RETRY_DELAYS = [100, 200, 400];
 const callService = async (url, { method = 'POST', body, headers = {}, attempt = 0 } = {}) => {
   const serviceToken = jwt.sign(
     { userId: 'service_ai_integration', role: 'service' },
-    env.JWT_SECRET,
+    env.SERVICE_JWT_SECRET,
     { expiresIn: '5m' },
   );
 
@@ -43,12 +43,15 @@ const callService = async (url, { method = 'POST', body, headers = {}, attempt =
     const data = await response.json();
 
     if (!response.ok) {
-      throw new ServiceUnavailableError(`Service returned ${response.status}: ${data?.error?.message || 'Unknown error'}`);
+      if (response.status >= 400 && response.status < 500) {
+        throw new ServiceUnavailableError(`Service returned ${response.status}: ${data?.error?.message || 'Unknown error'}`);
+      }
+      throw new AIProviderError(`Service returned ${response.status}: ${data?.error?.message || 'Unknown error'}`);
     }
 
     return data;
   } catch (err) {
-    if (err.isOperational && !(err.name === 'ServiceUnavailableError')) throw err;
+    if (err.isOperational && err.name !== 'AIProviderError') throw err;
 
     if (attempt < RETRY_DELAYS.length) {
       const delay = RETRY_DELAYS[attempt];

@@ -20,6 +20,7 @@ const schema = Joi.object({
   OPENAI_IMAGE_QUALITY: Joi.string().default('standard'),
   HF_API_KEY: Joi.string().when('AI_PROVIDER', { is: 'huggingface', then: Joi.required(), otherwise: Joi.optional() }),
   HF_MODEL: Joi.string().default('stabilityai/stable-diffusion-xl-base-1.0'),
+  HF_NEGATIVE_PROMPT: Joi.string().optional(),
   S3_BUCKET: Joi.string().when('AI_PROVIDER', { is: 'huggingface', then: Joi.required(), otherwise: Joi.optional() }),
   PROMPT_BUILDER_URL: Joi.string().uri().required(),
 }).unknown(true);
